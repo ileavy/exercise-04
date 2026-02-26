@@ -1,0 +1,145 @@
+---
+title: "wordle"
+format: html
+editor: visual
+---
+
+## Wordle Challenge
+
+Intro: packages
+
+```{r}
+#| eval: false
+#| warning: false
+
+library(tidyverse) 
+library(dplyr)
+```
+
+Step 1: Create Lists
+
+Create your own custom function called `load_dictionary()` that takes a single argument, “filename”, that can be used to read in either of the two data files your downloaded.
+
+```{r}
+#| eval: false
+collins <- read.table("collins-scrabble-words-2019.txt", header = TRUE, sep = " ")
+str(collins)
+google <- read.table("google-10000-english-usa-no-swears.txt", header = TRUE, sep = " ")
+str(google)
+class(google)
+
+load_dictionary <- function(filename) {
+  as.character(filename$words)
+}
+
+valid_list <- load_dictionary(collins)
+str(valid_list) #279496 words
+
+solution_list <- load_dictionary(google)
+str(solution_list) #9884 words
+```
+
+Step 2: Ensure all solutions are also valid
+
+```{r}
+#| eval: false
+
+?intersection
+solution_list <- intersect(solution_list, valid_list)
+str(solution_list) #8336 words
+```
+
+Step 3: Create function to pick a solution word
+
+```{r}
+pick_solution <- function(word_list) {
+  word_list <- word_list[nchar(word_list) == 5] 
+  solution <- sample(word_list, 1) 
+  solution_letters <- strsplit(solution, "") [[1]]
+  return(solution_letters)
+}
+
+solution <- pick_solution(solution_list)
+solution
+
+#in plain language: for each string in vector word_list, count how many letters are in the word, if == 5 keep, if not, drop
+#alt: filter out all words that != 5 letters
+
+#it works! returns a vector of 5 letters when run like -> pick_solution(solution_list)
+```
+
+Step 4: Functions needed to play
+
+What does the function need to do?
+
+\[1\] tell the player the rules of the game, \[2\] display what letters the player has not yet guessed, \[3\] Prompt the player for a guess, \[4\] read in their guess, and check that their guess is valid, \[5\] Compare the guess to the solution word and generate the necessary feedback, e.g., `*` for *in the word and in the correct position*, `+` for *in the word but in the wrong position*, and `-` for *not in the word*., \[6\] update the list of letters not yet guessed, \[7\] print success if they get it, \[8\] print failure after 6 wrong guesses
+
+```{r}
+#making evaluate guess function that will check if any letters are in the right place
+evaluate_guess <- function(guess, solution){
+  outcome <- c("-", "-", "-", "-", "-")
+  guess <- toupper(guess)
+  guess_letters <- strsplit(guess, "")[[1]]
+  for(i in 1:5){
+  if (guess_letters[i] == solution[1]) {outcome[i] <- "+"}
+  if (guess_letters[i] == solution[2]) {outcome[i] <- "+"}
+  if (guess_letters[i] == solution[3]) {outcome[i] <- "+"}
+  if (guess_letters[i] == solution[4]) {outcome[i] <- "+"}
+  if (guess_letters[i] == solution[5]) {outcome[i] <- "+"}
+  }
+  for(i in 1:5){
+    if (guess_letters[i] == solution[i]) {outcome[i] <- "*"}
+  }
+  return(outcome)
+}
+  }
+```
+
+```{r}
+#play wordle needs to...
+
+#define alphabet
+remaining_letters <- LETTERS
+
+#establish a solution (don't tell!)
+solution <- pick_solution(solution_list)
+
+#explain the rules of the game 
+print("Input a 5 letter word.")
+
+#get a guess from the user
+print(remaining_letters)
+guess <- readline(prompt = "Guess: ")
+
+#evaluate guess
+evaluate_guess(guess, solution)
+remaining_letters <- remaining_letters[!(remaining_letters %in% guess_letters)]
+#this will return the outcome vector
+
+#check if the last guess was a winner
+if(outcome != c("*", "*", "*", "*", "*")) {print("Try Again!")}
+if(outcome == c("*", "*", "*", "*", "*")) {print("You Win!")} #and end the loop
+
+```
+
+```{r}
+play_wordle <- function() {
+  remaining_letters <- LETTERS
+  solution <- pick_solution(solution_list)
+  count = 0
+  while(outcome != c("*", "*", "*", "*", "*") || count < 6)
+  {
+    print(remaining_letters)
+    guess <- readline(prompt = "Guess: ")
+    evaluate_guess(guess, solution)
+    remaining_letters <- remaining_letters[!(remaining_letters %in% guess_letters)]
+    if(outcome != c("*", "*", "*", "*", "*")) {print("Try Again!")}
+  }
+  count = count + 1
+  if(outcome == c("*", "*", "*", "*", "*")) {print("You Win!")}
+  if(count == 6) {print(paste0("You are out of guesses! The answer was:", solution))}
+}
+
+
+```
+
