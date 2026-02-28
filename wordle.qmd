@@ -52,6 +52,8 @@ str(solution_list) #8336 words
 Step 3: Create function to pick a solution word
 
 ```{r}
+#| eval: false
+
 pick_solution <- function(word_list) {
   word_list <- word_list[nchar(word_list) == 5] 
   solution <- sample(word_list, 1) 
@@ -61,9 +63,6 @@ pick_solution <- function(word_list) {
 
 solution <- pick_solution(solution_list)
 solution
-
-#in plain language: for each string in vector word_list, count how many letters are in the word, if == 5 keep, if not, drop
-#alt: filter out all words that != 5 letters
 
 #it works! returns a vector of 5 letters when run like -> pick_solution(solution_list)
 ```
@@ -77,69 +76,91 @@ What does the function need to do?
 ```{r}
 #making evaluate guess function that will check if any letters are in the right place
 evaluate_guess <- function(guess, solution){
-  outcome <- c("-", "-", "-", "-", "-")
-  guess <- toupper(guess)
-  guess_letters <- strsplit(guess, "")[[1]]
-  for(i in 1:5){
-  if (guess_letters[i] == solution[1]) {outcome[i] <- "+"}
-  if (guess_letters[i] == solution[2]) {outcome[i] <- "+"}
-  if (guess_letters[i] == solution[3]) {outcome[i] <- "+"}
-  if (guess_letters[i] == solution[4]) {outcome[i] <- "+"}
-  if (guess_letters[i] == solution[5]) {outcome[i] <- "+"}
-  }
-  for(i in 1:5){
-    if (guess_letters[i] == solution[i]) {outcome[i] <- "*"}
-  }
+
+guess_letters <- strsplit(guess, "")[[1]]
+solution_counts <- table(solution)
+n <- length(solution)
+outcome <- rep("-", n)
+
+    for(i in 1:n)
+      {
+      if (guess_letters[i] == solution[i]) 
+        {
+        outcome[i] <- "*"
+        solution_counts[guess_letters[i]] <- solution_counts[guess_letters[i]] - 1
+      }
+    }
+
+for(i in 1:n)
+      if (outcome[i] == "-") {
+        letter <- guess_letters[i]
+        
+        if(letter %in% names(solution_counts) && solution_counts[letter] > 0) {
+          outcome[i] <- "+"
+          solution_counts[letter] <- solution_counts[letter] - 1
+      }
+      }
   return(outcome)
 }
-  }
 ```
 
 ```{r}
-#play wordle needs to...
+#| eval: false
 
-#define alphabet
-remaining_letters <- LETTERS
+play_wordle <- function(solution_list, valid_list, num_guesses) {
 
-#establish a solution (don't tell!)
-solution <- pick_solution(solution_list)
-
-#explain the rules of the game 
-print("Input a 5 letter word.")
-
-#get a guess from the user
-print(remaining_letters)
-guess <- readline(prompt = "Guess: ")
-
-#evaluate guess
-evaluate_guess(guess, solution)
-remaining_letters <- remaining_letters[!(remaining_letters %in% guess_letters)]
-#this will return the outcome vector
-
-#check if the last guess was a winner
-if(outcome != c("*", "*", "*", "*", "*")) {print("Try Again!")}
-if(outcome == c("*", "*", "*", "*", "*")) {print("You Win!")} #and end the loop
-
-```
-
-```{r}
-play_wordle <- function() {
-  remaining_letters <- LETTERS
+  #pick a solution, split it into a vector of letters
   solution <- pick_solution(solution_list)
-  count = 0
-  while(outcome != c("*", "*", "*", "*", "*") || count < 6)
-  {
-    print(remaining_letters)
-    guess <- readline(prompt = "Guess: ")
-    evaluate_guess(guess, solution)
-    remaining_letters <- remaining_letters[!(remaining_letters %in% guess_letters)]
-    if(outcome != c("*", "*", "*", "*", "*")) {print("Try Again!")}
-  }
-  count = count + 1
-  if(outcome == c("*", "*", "*", "*", "*")) {print("You Win!")}
-  if(count == 6) {print(paste0("You are out of guesses! The answer was:", solution))}
-}
 
+  #set variables to hold things
+  remaining_letters <- LETTERS
+  x <- 0
+  n <- length(solution)
+
+ #intro 
+  cat("Welcome to Wordle! You will have 6 tries to guess the secret word. After each guess, you will get a series of symbols that tell you how well you are doing. * means the letter was correct, and in the correct spot. + means the letter if in the word, but not in the spot you guessed. - means the letter is not in the word.\n")
+
+  #loop
+  while(any(outcome != "*") && x < num_guesses) {
+    cat("Remaining letters :\n", remaining_letters, "\n")
+    
+    guess <- toupper(readline(prompt = "Guess a 5-letter word: "))
+    guess_letters <- strsplit(guess, "")[[1]]
+    
+    ##check that guess is the right length
+      if(!(nchar(guess) == 5)) {
+      cat("Your guess must contain ", n, "letters. Try again:\n")
+        next
+      }
+    
+    ##check that guess is valid
+    if (!(guess %in% valid_list)) {
+    cat("This word is invalid. Try again: \n")
+      next
+      }
+
+# evaluate a valid guess
+    outcome <- evaluate_guess(guess, solution)
+    print(outcome)
+    remaining_letters <- remaining_letters[!remaining_letters %in% guess_letters]
+    x <- x + 1
+  }
+  
+  #end of game
+  if(all(outcome == "*")) {
+    print("You Win!")
+  } else {
+    cat("You are out of guesses! The answer was:", solution)
+  }
+}
+```
+
+```{r}
+#| eval: false
+
+#run this code to play (with 6 tries)!
+#I am not sure how you want to be able to test it, or if there is a way to initialize more naturally with quarto. Sorry if this is harder than it needs to be to play!
+play_wordle(solution_list, valid_list, 6)
 
 ```
 
